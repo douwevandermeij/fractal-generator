@@ -1,0 +1,63 @@
+from fractal.core.utils.application_context import ApplicationContext as BaseContext
+
+
+class ApplicationContext(BaseContext):
+{% if application.repositories %}
+    def load_repositories(self):
+    {% for repository in application.repositories %}
+        from {{ application.name|snake }}.adapters.repositories import InMemory{{ repository.entity.name|snake|camel }}Repository
+        from {{ application.name|snake }}.domain.repositories import {{ repository.entity.name|snake|camel }}Repository
+    {% endfor %}
+    {% for repository in application.repositories %}
+        self.{{ repository.entity.name|snake }}_repository: {{ repository.entity.name|snake|camel }}Repository = self.install_repository(
+            InMemory{{ repository.entity.name|snake|camel }}Repository()
+        )
+    {% endfor %}
+{% endif %}
+{% if application.internal_services %}
+    def load_internal_services(self):
+        super(ApplicationContext, self).load_internal_services()
+    {% for service in application.internal_services %}
+        from {{ application.name|snake }}.domain.services import {{ service.name|snake|camel }}Service
+    {% endfor %}
+    {% for service in application.internal_services %}
+        self.{{ service.name|snake }}_service: {{ service.name|snake|camel }}Service = None  # NOQA
+        self.install_service({{ service.name|snake|camel }}Service)
+    {% endfor %}
+{% endif %}
+{% if application.ingress_services %}
+    def load_ingress_services(self):
+    {% for service in application.ingress_services %}
+        from {{ application.name|snake }}.adapters.services import InMemory{{ service.name|snake|camel }}Service
+    {% endfor %}
+    {% for service in application.ingress_services %}
+        self.{{ service.name|snake }}_service: {{ service.name|snake|camel }}Service = None  # NOQA
+        self.install_service({{ service.name|snake|camel }}Service)
+    {% endfor %}
+{% endif %}
+{% if application.egress_services %}
+    def load_egress_services(self):
+    {% for service in application.egress_services %}
+        from {{ application.name|snake }}.adapters.services import InMemory{{ service.name|snake|camel }}Service
+    {% endfor %}
+    {% for service in application.egress_services %}
+        self.{{ service.name|snake }}_service: {{ service.name|snake|camel }}Service = None  # NOQA
+        self.install_service({{ service.name|snake|camel }}Service)
+    {% endfor %}
+{% endif %}
+    def load_command_bus(self):
+        super(ApplicationContext, self).load_command_bus()
+    {% for entity in application.entities %}{% for command in entity.commands %}
+        from {{ application.name|snake }}.domain.commands.{{ command.name|snake }}_{{ entity.name|snake }} import {{ command.name|snake|camel }}{{ entity.name|snake|camel }}CommandHandler
+    {% endfor %}{% endfor %}
+    {% for entity in application.entities %}{% for command in entity.commands %}
+        {{ command.name|snake|camel }}{{ entity.name|snake|camel }}CommandHandler.install(self)
+    {% endfor %}{% endfor %}
+{% if application.event_projectors %}
+    def load_event_projectors(self):{% for projector in application.event_projectors %}
+        from {{ dict(projector.__dict__)["__module__"] }} import {{ projector.__name__ }}{% endfor %}
+
+        return [{% for projector in application.event_projectors %}
+            {{ projector.__name__ }}(),{% endfor %}
+        ]
+{% endif %}

@@ -1,0 +1,19 @@
+from fractal.contrib.fastapi.routers.default import inject_default_routes
+from fractal.contrib.fastapi.install import install_fastapi
+{% for router in application.contrib.routers %}from {{ application.name|snake }}.contrib.fastapi.routers import {{ router }}{% endfor %}
+from {{ application.name|snake }}.context import ApplicationContext
+from {{ application.name|snake }}.main import {{ application.name|snake|camel }}Fractal
+from {{ application.name|snake }}.settings import Settings
+
+app = install_fastapi(Settings())
+
+app.include_router(inject_default_routes(ApplicationContext()), tags=["default"])
+
+{% for router in routers %}
+app.include_router({{ router }}.router, tags=["{{ router }}"]){% endfor %}
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="localhost", port=8000)

@@ -1,0 +1,8 @@
+from fractal import Fractal
+from {{ application.name|snake }}.context import ApplicationContext
+from {{ application.name|snake }}.settings import Settings
+
+
+class {{ application.name|camel }}Fractal(Fractal):
+    settings = Settings()
+    context = ApplicationContext()

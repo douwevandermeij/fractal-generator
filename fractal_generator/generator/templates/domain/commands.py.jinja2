@@ -1,0 +1,66 @@
+from dataclasses import dataclass, asdict
+from typing import List, Type, Optional
+
+from fractal.core.command_bus.command import Command
+from fractal.core.command_bus.command_handler import CommandHandler
+from fractal.core.event_sourcing.event_publisher import EventPublisher
+from fractal.core.process.action import Action
+from fractal.core.process.process import Process
+from fractal.core.process.process_scope import ProcessScope
+
+from {{ application.name|snake }}.context import ApplicationContext
+from {{ application.name|snake }}.domain.contracts import {{ command.name|snake|camel }}{{ entity.name|snake|camel }}Contract
+from {{ application.name|snake }}.domain.entities import {{ entity.name|snake|camel }}
+from {{ application.name|snake }}.domain.events import {{ entity.name|snake|camel }}{{ command.event.name|snake|camel }}Event
+from {{ application.name|snake }}.domain.repositories import {{ entity.name|snake|camel }}Repository
+
+@dataclass
+class {{ command.name|snake|camel }}{{ entity.name|snake|camel }}Command(Command):
+    contract: {{ command.name|snake|camel }}{{ entity.name|snake|camel }}Contract
+
+
+class {{ command.name|snake|camel }}{{ entity.name|snake|camel }}CommandHandler(CommandHandler):
+    def __init__(
+        self,
+        event_publisher: EventPublisher,
+        {{ entity.name|snake }}_repository: {{ entity.name|snake|camel }}Repository,
+    ):
+        self.event_publisher = event_publisher
+        self.{{ entity.name|snake}}_repository = {{ entity.name|snake }}_repository
+
+    @staticmethod
+    def install(context: ApplicationContext):
+        context.command_bus.add_handler(
+            {{ command.name|snake|camel }}{{ entity.name|snake|camel }}CommandHandler(
+                context.event_publisher,
+                context.{{ entity.name|snake }}_repository,
+            )
+        )
+
+    def commands(self) -> List[Type[Command]]:
+        return [
+            {{ command.name|snake|camel }}{{ entity.name|snake|camel }}Command,
+        ]
+
+    def handle(self, command: {{ command.name|snake|camel }}{{ entity.name|snake|camel }}Command) -> Optional[{{ entity.name|snake|camel }}]:
+        if type(command) not in self.commands():
+            return
+
+        process = Process(self.get_process_actions())
+        scope = dict(
+            repository=self.{{ entity.name|snake}}_repository,
+        )
+        scope.update(asdict(command))
+        entity = process.run(ProcessScope(scope)).get("entity", None)
+
+        self.event_publisher.publish_event(
+            {{ entity.name|snake|camel }}{{ command.event.name|snake|camel }}Event(
+                command=command,
+                entity=entity,
+            ),
+        )
+        return entity
+
+{% if process_actions_source %}{{ process_actions_source }}
+{% else %}    def get_process_actions(self) -> List[Action]:
+        return []{% endif %}

@@ -1,0 +1,9 @@
+from dataclasses import dataclass
+
+from fractal.core.models import CleanContract
+
+{% for entity in application.entities %}{% for command in entity.commands %}
+@dataclass
+class {{ command.name|snake|camel }}{{ entity.name|snake|camel }}Contract(CleanContract):{% for field in command.contract.fields %}
+    {{ field.0 }}: {{ field.1 }}{% else %}"""Contract for {{ command.name|snake|camel }}{{ entity.name|snake|camel }}"""{% endfor %}
+{% endfor %}{% endfor %}

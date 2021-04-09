@@ -1,0 +1,17 @@
+from abc import ABC
+from typing import Optional
+
+from fractal.core.repositories import Repository
+{% for repository in application.repositories %}
+from {{ application.name|snake }}.domain.entities import {{ repository.entity.name|snake|camel }}
+from {{ application.name|snake }}.domain.exceptions import {{ repository.entity.name|snake|camel }}NotFoundException{% endfor %}{% for repository in application.repositories %}
+
+
+class {{ repository.entity.name|snake|camel }}Repository(Repository[{{ repository.entity.name|snake|camel }}], ABC):
+    entity = {{ repository.entity.name|snake|camel }}
+
+    @staticmethod
+    def process(id: str, ret: Optional[{{ repository.entity.name|snake|camel }}]):
+        if not ret:
+            raise {{ repository.entity.name|snake|camel }}NotFoundException(f"Cannot find {{ repository.entity.name|snake }} with id '{id}'.")
+        return ret{% endfor %}

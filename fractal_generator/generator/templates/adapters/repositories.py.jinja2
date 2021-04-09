@@ -1,0 +1,8 @@
+from fractal.core.repositories.inmemory_repository_mixin import InMemoryRepositoryMixin
+{% for repository in application.repositories %}
+from {{ application.name|snake }}.domain.entities import {{ repository.entity.name|snake|camel }}{% endfor %}{% for repository in application.repositories %}
+from {{ application.name|snake }}.domain.repositories import {{ repository.entity.name|snake|camel }}Repository{% endfor %}{% for repository in application.repositories %}
+
+
+class InMemory{{ repository.entity.name|snake|camel }}Repository(InMemoryRepositoryMixin[{{ repository.entity.name|snake|camel }}], {{ repository.entity.name|snake|camel }}Repository):
+    pass{% endfor %}

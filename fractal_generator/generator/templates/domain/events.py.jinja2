@@ -1,0 +1,16 @@
+from dataclasses import dataclass
+
+from fractal.core.command_bus.command import Command
+from fractal.core.event_sourcing.event import SendingEvent
+from fractal.core.repositories import Entity
+
+{% for entity in application.entities %}{% for command in entity.commands %}
+@dataclass
+class {{ entity.name|snake|camel }}{{ command.event.name|snake|camel }}Event(SendingEvent):
+    command: Command
+    entity: Entity
+
+    @property
+    def object_id(self):
+        return self.entity.id
+{% endfor %}{% endfor %}

@@ -1,0 +1,10 @@
+{% for service in application.ingress_services %}from {{ application.name|snake }}.domain.services import {{ service.name|snake|camel }}Service{% endfor %}
+{% for service in application.egress_services %}from {{ application.name|snake }}.domain.services import {{ service.name|snake|camel }}Service{% endfor %}
+{% for service in application.ingress_services %}
+
+class InMemory{{ service.name|snake|camel }}Service({{ service.name|snake|camel }}Service):
+    pass{% endfor %}
+{% for service in application.egress_services %}
+
+class InMemory{{ service.name|snake|camel }}Service({{ service.name|snake|camel }}Service):
+    pass{% endfor %}

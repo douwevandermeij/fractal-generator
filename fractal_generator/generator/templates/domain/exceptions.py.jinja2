@@ -1,0 +1,6 @@
+from fractal.core.exceptions import DomainException{% for repository in application.repositories %}
+
+
+class {{ repository.entity.name|snake|camel }}NotFoundException(DomainException):
+    code = "{{ repository.entity.name|snake|upper }}_NOT_FOUND"
+    status_code = 404{% endfor %}

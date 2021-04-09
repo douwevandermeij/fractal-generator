@@ -1,0 +1,8 @@
+from dataclasses import dataclass
+
+from fractal.core.models import Model{% for entity in application.entities %}
+
+
+@dataclass
+class {{ entity.name|snake|camel }}(Model):{% if entity.fields %}{% for field in entity.fields %}
+    {{ field.0 }}: {{ field.1 }}{% endfor %}{% else %}pass{% endif %}{% endfor %}

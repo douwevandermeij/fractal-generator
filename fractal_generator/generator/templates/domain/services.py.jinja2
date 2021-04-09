@@ -1,0 +1,53 @@
+from typing import List
+
+from fractal.core.command_bus.command_bus import CommandBus
+from fractal.core.process.action import Action
+from fractal.core.process.process import Process
+from fractal.core.process.process_scope import ProcessScope
+from fractal.core.services import Service
+from fractal.core.specifications.generic.specification import Specification
+
+from {{ application.name|snake }}.context import ApplicationContext
+{% for service in services %}{% for entity_command in service.entity_commands %}
+from {{ application.name|snake }}.domain.commands.{{ entity_command.1.name|snake }}_{{ entity_command.0.name|snake }} import {{ entity_command.1.name|snake|camel }}{{ entity_command.0.name|snake|camel }}Command, {{ entity_command.1.name|snake|camel }}{{ entity_command.0.name|snake|camel }}CommandHandler
+from {{ application.name|snake }}.domain.contracts import {{ entity_command.1.name|snake|camel }}{{ entity_command.0.name|snake|camel }}Contract
+from {{ application.name|snake }}.domain.entities import {{ entity_command.0.name }}{% endfor %}
+{% for repository in service.repositories %}
+from shop.domain.repositories import {{ repository.entity.name|snake|camel }}Repository{% endfor %}{% endfor %}
+{% for service in services %}
+
+
+class {{ service.name|snake|camel }}Service(Service):
+    def __init__(
+        self,
+        command_bus: CommandBus,{% for repository in service.repositories %}
+        {{ repository.entity.name|snake }}_repository: {{ repository.entity.name|snake|camel }}Repository,{% endfor %}
+    ):
+        self.command_bus = command_bus{% for repository in service.repositories %}
+        self.{{ repository.entity.name|snake }}_repository = {{ repository.entity.name|snake }}_repository{% endfor %}
+
+    @classmethod
+    def install(cls, context: ApplicationContext):
+        yield cls(
+            context.command_bus,{% for repository in service.repositories %}
+            context.{{ repository.entity.name|snake }}_repository,{% endfor %}
+        )
+    {% for entity_command in service.entity_commands %}
+    def {{ entity_command.1.name|snake }}_{{ entity_command.0.name|snake }}(self, contract: {{ entity_command.1.name|snake|camel }}{{ entity_command.0.name|snake|camel }}Contract) -> {{ entity_command.0.name }}:
+        return self.command_bus.handle(
+            {{ entity_command.1.name|snake|camel }}{{ entity_command.0.name|snake|camel }}Command(
+                contract=contract,
+            )
+        )[{{ entity_command.1.name|snake|camel }}{{ entity_command.0.name|snake|camel }}CommandHandler.__name__]{% endfor %}
+    {% for query in service.queries %}
+    def {{ query.name|snake }}(self, specification: Specification) -> {{ query.return_entity.name|snake|camel }}:
+        process = Process(self.__get_process_actions_{{ query.name|snake }}(specification))
+        scope = dict({% for repository in service.repositories %}
+            {{ repository.entity.name|snake }}_repository=self.{{ repository.entity.name|snake }}_repository,{% endfor %}
+        )
+        entity = process.run(ProcessScope(scope)).get("entity", None)
+        return entity
+
+{% if query.process_actions %}{{ query.process_actions_source }}
+{% else %}    def __get_process_actions_{{ query.name|snake }}(specification: Specification) -> List[Action]:
+        return []{% endif %}{% endfor %}{% endfor %}
